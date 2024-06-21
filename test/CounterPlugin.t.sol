@@ -88,17 +88,36 @@ contract CounterTest is Test {
             signature: ""
         });
 
+        UserOperation memory userOp2 = UserOperation({
+            sender: address(account1),
+            nonce: 1,
+            initCode: "",
+            callData: abi.encodeCall(CounterPlugin.increment, ()),
+            callGasLimit: CALL_GAS_LIMIT,
+            verificationGasLimit: VERIFICATION_GAS_LIMIT,
+            preVerificationGas: 0,
+            maxFeePerGas: 2,
+            maxPriorityFeePerGas: 1,
+            paymasterAndData: "",
+            signature: ""
+        });
+
         // sign this user operation with the owner, otherwise it will revert due to the singleowner validation
         bytes32 userOpHash = entryPoint.getUserOpHash(userOp);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner1Key, userOpHash.toEthSignedMessageHash());
         userOp.signature = abi.encodePacked(r, s, v);
 
+        bytes32 userOpHash2 = entryPoint.getUserOpHash(userOp2);
+        (v, r, s) = vm.sign(owner1Key, userOpHash2.toEthSignedMessageHash());
+        userOp2.signature = abi.encodePacked(r, s, v);
+
         // send our single user operation to increment our count
-        UserOperation[] memory userOps = new UserOperation[](1);
+        UserOperation[] memory userOps = new UserOperation[](2);
         userOps[0] = userOp;
+        userOps[1] = userOp2;
         entryPoint.handleOps(userOps, beneficiary);
 
         // check that we successfully incremented!
-        assertEq(counterPlugin.count(address(account1)), 1);
+        assertEq(counterPlugin.count(address(account1)), 2);
     }
 }
